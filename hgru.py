@@ -74,7 +74,8 @@ class hConvGRUCell(nn.Module):
     Generate a convolutional GRU cell
     """
 
-    def __init__(self, input_size, hidden_size, kernel_size, batchnorm=True, timesteps=8):
+    def __init__(self, input_size, hidden_size, kernel_size, batchnorm=True, 
+                 timesteps=8, channel_sym=True):
         super().__init__()
         self.padding = kernel_size // 2
         self.input_size = input_size
@@ -102,13 +103,11 @@ class hConvGRUCell(nn.Module):
 
         init.orthogonal_(self.w_gate_inh)
         init.orthogonal_(self.w_gate_exc)
-        
-#        self.w_gate_inh = nn.Parameter(self.w_gate_inh.reshape(hidden_size , hidden_size , kernel_size, kernel_size))
-#        self.w_gate_exc = nn.Parameter(self.w_gate_exc.reshape(hidden_size , hidden_size , kernel_size, kernel_size))
-        self.w_gate_inh.register_hook(lambda grad: (grad + torch.transpose(grad,1,0))*0.5)
-        self.w_gate_exc.register_hook(lambda grad: (grad + torch.transpose(grad,1,0))*0.5)
-#        self.w_gate_inh.register_hook(lambda grad: print("inh"))
-#        self.w_gate_exc.register_hook(lambda grad: print("exc"))
+        if channel_sym:
+            self.w_gate_inh.data = (self.w_gate_inh + torch.transpose(self.w_gate_inh,1,0))*0.5
+            self.w_gate_exc.data = (self.w_gate_exc + torch.transpose(self.w_gate_exc,1,0))*0.5
+            self.w_gate_inh.register_hook(lambda grad: (grad + torch.transpose(grad,1,0))*0.5)
+            self.w_gate_exc.register_hook(lambda grad: (grad + torch.transpose(grad,1,0))*0.5)
         
         init.orthogonal_(self.u1_gate.weight)
         init.orthogonal_(self.u2_gate.weight)
@@ -183,7 +182,7 @@ class hConvGRU(nn.Module):
         init.xavier_normal_(self.conv6.weight)
         init.constant_(self.conv6.bias, 0)
         
-        self.maxpool = nn.MaxPool2d(150, stride=1)
+        self.maxpool = nn.MaxPool2d(300, stride=1)
         
         #self.bn2 = nn.GroupNorm(2, 2, eps=1e-03)
         self.bn2 = nn.BatchNorm2d(2, eps=1e-03)

@@ -6,3 +6,6 @@ test_images.txt
 train_images.txt
 *.pth.tar
 *.npy
+.DS_Store
+.ipynb_checkpoints/
+

@@ -1,51 +1,56 @@
-import torch.utils.data as data
-from PIL import Image
+"""
+Data generators and related stuff
+"""
+
 import os
+import scipy.io
+import numpy as np
+import imageio
+from PIL import Image, ImageOps
 
-class VideoRecord(object):
-    def __init__(self, root_path, row):
-        self._data = [os.path.join(root_path, row[0]), row[1]]
+import torch
+from torch.utils.data import Dataset, DataLoader
 
-    @property
-    def path(self):
-        return self._data[0]
+class PathfinderDataset(Dataset):
 
-    @property
-    def label(self):
-        return int(self._data[1])
+    def __init__(self, data_root):
+        """ load only paths to images """
+        data_root += '/' if not data_root.endswith('/') else ''
+        self._x_files = []
+        self._y_arr_all = []
 
-class DataSetPol(data.Dataset):
-    def __init__(self, root_path, list_file, modality='RGB', transform=None, random_shift=True, test_mode=False):
+        # positive samples
+        x_path = data_root + "curv_baseline/imgs/"
+        dirs = [d for d in os.listdir(x_path) if os.path.isdir(os.path.join(x_path,d))]
+        for d in dirs:
+            for f in self._get_filenames(x_path+d, '.png'):
+                self._x_files += ["{}{}/{}".format(x_path,d,f)]
+                self._y_arr_all += [1]
 
-        self.root_path = root_path
-        self.list_file = list_file
-        self.modality = modality
+        # negative samples
+        x_path = data_root + "curv_baseline_neg/imgs/"
+        dirs = [d for d in os.listdir(x_path) if os.path.isdir(os.path.join(x_path,d))]
+        for d in dirs:
+            for f in self._get_filenames(x_path+d, '.png'):
+                self._x_files += ["{}{}/{}".format(x_path,d,f)]
+                self._y_arr_all += [0]
 
-        self.transform = transform
-        self.random_shift = random_shift
-        self.test_mode = test_mode
-
-        self._parse_list()
-
-    def _load_image(self, directory):
-        if self.modality == 'RGB' or self.modality == 'RGBDiff':
-            return [Image.open(directory).convert('L')]
-        elif self.modality == "Flow":
-            return [Image.open(directory).convert('L')]
-
-    def _parse_list(self):
-        self.video_list = [VideoRecord(self.root_path, x.strip().split(' ')) for x in open(self.list_file)]
-
-    def __getitem__(self, index):
-        record = self.video_list[index]
-        return self.get(record)
-
-    def get(self, record):
-        seg_imgs = self._load_image(record.path)
-        #print(record.path, record.label)
-        images = seg_imgs
-        process_data = self.transform(images)
-        return process_data, record.label
+        self._x_files = np.array(self._x_files)
+        self._y_arr_all = np.array(self._y_arr_all)
+        self._nsamples = len(self._x_files)
+        self._iter_idx = 0
 
     def __len__(self):
-        return len(self.video_list)
+        return self._nsamples
+
+    def __getitem__(self, index):
+        if torch.is_tensor(index):
+            index = index.tolist()
+        x = imageio.imread(self._x_files[index]).reshape(300,300,1)
+        y = np.array(self._y_arr_all[index])
+        x = torch.from_numpy(x.transpose((2,0,1))).float()
+        y = torch.from_numpy(y)
+        return {'image':x, 'label':y}
+
+    def _get_filenames(self, path, extension):
+        return [x for x in os.listdir(path) if x.endswith(extension)]
