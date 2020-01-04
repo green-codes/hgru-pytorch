@@ -161,7 +161,7 @@ class hConvGRUCell(nn.Module):
 
 class hConvGRU(nn.Module):
 
-    def __init__(self, timesteps=8, filt_size = 9):
+    def __init__(self, input_shape, timesteps=8, filt_size = 9):
         super().__init__()
         self.timesteps = timesteps
         
@@ -180,7 +180,7 @@ class hConvGRU(nn.Module):
         init.xavier_normal_(self.conv6.weight)
         init.constant_(self.conv6.bias, 0)
         
-        self.maxpool = nn.MaxPool2d(300, stride=1)
+        self.maxpool = nn.MaxPool2d(input_shape[0], stride=1)
         
         #self.bn2 = nn.GroupNorm(2, 2, eps=1e-03)
         self.bn2 = nn.BatchNorm2d(2, eps=1e-03)
