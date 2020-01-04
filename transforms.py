@@ -4,6 +4,30 @@ import numpy as np
 import torch
 
 
+class Rescale(object):
+    
+    def __init__(self, size, interpolation=Image.BICUBIC):
+        self.worker = torchvision.transforms.Resize(size, interpolation)
+    
+    def __call__(self, data):
+        x, y = data['image'], data['label']
+        return {'image':self.worker(x), 'label':y}
+    
+    
+class ToTensor(object):
+
+    def __init__(self, div=True):
+        self.div = div
+
+    def __call__(self, data):
+        x, y = data['image'], data['label']
+        x = torch.from_numpy(np.expand_dims(np.array(x),axis=0)).contiguous()
+        x = x.float().div(255) if self.div else x.float()
+        y = torch.from_numpy(y)
+
+        return {'image':x, 'label':y}
+
+
 class GroupScale(object):
     """ Rescales the input PIL.Image to the given 'size'.
     'size' will be the size of the smaller edge.

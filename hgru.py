@@ -94,11 +94,8 @@ class hConvGRUCell(nn.Module):
         self.w = nn.Parameter(torch.empty((hidden_size,1,1)))
         self.mu= nn.Parameter(torch.empty((hidden_size,1,1)))
 
-        if self.batchnorm:
-            #self.bn = nn.ModuleList([nn.GroupNorm(25, 25, eps=1e-03) for i in range(32)])
-            self.bn = nn.ModuleList([nn.BatchNorm2d(25, eps=1e-03) for i in range(32)])
-        else:
-            self.n = nn.Parameter(torch.randn(self.timesteps,1,1))
+        self.bn = nn.ModuleList([nn.BatchNorm2d(25, eps=1e-03) for i in range(32)])
+        self.n = nn.Parameter(torch.randn(self.timesteps,1,1))
 
         init.orthogonal_(self.w_gate_inh)
         init.orthogonal_(self.w_gate_exc)

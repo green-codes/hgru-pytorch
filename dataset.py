@@ -13,7 +13,10 @@ from torch.utils.data import Dataset, DataLoader
 
 class PathfinderDataset(Dataset):
 
-    def __init__(self, data_root):
+    def __init__(self, data_root, transform=None):
+        
+        self.transform = transform
+        
         """ load only paths to images """
         data_root += '/' if not data_root.endswith('/') else ''
         self._x_files = []
@@ -46,11 +49,12 @@ class PathfinderDataset(Dataset):
     def __getitem__(self, index):
         if torch.is_tensor(index):
             index = index.tolist()
-        x = imageio.imread(self._x_files[index]).reshape(300,300,1)
+        x = Image.open(self._x_files[index]).convert('L')
         y = np.array(self._y_arr_all[index])
-        x = torch.from_numpy(x.transpose((2,0,1))).float()
-        y = torch.from_numpy(y)
-        return {'image':x, 'label':y}
+        ret = {'image':x, 'label':y}
+        if self.transform is not None:
+            ret = self.transform(ret)
+        return ret
 
     def _get_filenames(self, path, extension):
         return [x for x in os.listdir(path) if x.endswith(extension)]
